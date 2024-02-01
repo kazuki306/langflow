@@ -48,7 +48,7 @@ export class EcrRepository extends Construct {
     // Create Docker Image Asset
     const dockerFrontEndImageAsset = new DockerImageAsset(this, "DockerFrontEndImageAsset", {
       directory: frontendPath,
-      file:"cdk.Dockerfile",
+      file:"Dockerfile",
       buildArgs:{
         "BACKEND_URL":`http://backend.${props.cloudmapNamespace.namespaceName}:7860`
       },
