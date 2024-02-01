@@ -30,7 +30,7 @@ export class LangflowAppStack extends cdk.Stack {
     const arch = ecs.CpuArchitecture.X86_64
 
     // VPC
-    const { vpc, cluster, ecsBackSG, backendServicePort, dbSG, backendLogGroup, nlb, nlbTG, nlbSG, api} = new Network(this, 'Network')
+    const { vpc, cluster, ecsBackSG, backendServicePort, dbSG, backendLogGroup, nlbTG, api} = new Network(this, 'Network')
 
     // ECR
     const { ecrBackEndRepository } = new EcrRepository(this, 'Ecr', {
@@ -61,7 +61,6 @@ export class LangflowAppStack extends cdk.Stack {
     backendService.node.addDependency(rdsCluster);
 
     const frontendService = new Web(this, 'frontend',{
-      cluster:cluster,
       api:api,
     })
     frontendService.node.addDependency(backendService);

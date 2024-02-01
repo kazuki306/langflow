@@ -10,7 +10,6 @@ import { NodejsBuild } from 'deploy-time-build';
 
 
 interface FrontEndProps {
-  cluster:ecs.Cluster
   api:apigateway.RestApi;
 }
 
