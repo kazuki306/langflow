@@ -119,7 +119,11 @@ export class Network extends Construct {
           requestParameters: {
             'integration.request.path.proxy' : 'method.request.path.proxy'
           }
-    }}), {}
+    }}), {
+      requestParameters: {
+      'method.request.path.proxy': true,
+    },
+    }
     );
     
 
