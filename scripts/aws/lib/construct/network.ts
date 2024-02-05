@@ -16,9 +16,7 @@ export class Network extends Construct {
   readonly backendServicePort: number
   readonly dbSG: ec2.SecurityGroup;
   readonly backendLogGroup: logs.LogGroup;
-  readonly nlb: elb.INetworkLoadBalancer;
   readonly nlbTG: elb.NetworkTargetGroup;
-  readonly nlbSG: ec2.SecurityGroup;
   readonly api: apigateway.RestApi;
 
   constructor(scope: Construct, id: string) {
@@ -52,19 +50,19 @@ export class Network extends Construct {
     })
 
     // NLBの設定
-    this.nlbSG = new ec2.SecurityGroup(scope, 'ALBSecurityGroup', {
+    const nlbSG = new ec2.SecurityGroup(scope, 'ALBSecurityGroup', {
       securityGroupName: 'nlb-sg',
       description: 'for nlb',
       vpc: this.vpc,
     })
 
-    this.nlb = new elb.NetworkLoadBalancer(this,'langflow-nlb',{
+    const nlb = new elb.NetworkLoadBalancer(this,'langflow-nlb',{
       vpc:this.vpc,
       vpcSubnets:{subnetType: SubnetType.PRIVATE_WITH_EGRESS},
       loadBalancerName: 'langflow-nlb',
       crossZoneEnabled:true,
       internetFacing:false,
-      securityGroups:[this.nlbSG]
+      securityGroups:[nlbSG]
     })
 
     this.nlbTG = new elb.NetworkTargetGroup(this, `TargetGroup`, {
@@ -75,8 +73,8 @@ export class Network extends Construct {
           deregistrationDelay: Duration.seconds(0) // 開発環境デプロイ高速化のため。本番環境は数値上げておく
       });
       
-      this.nlb.addListener(`Listener`, {
-          port: this.backendServicePort,
+      nlb.addListener(`Listener`, {
+          port: 80,
           defaultTargetGroups: [this.nlbTG]
       });
     //
@@ -85,13 +83,16 @@ export class Network extends Construct {
     const vpcLink = new apigateway.VpcLink(this, `NLB-VpcLink`, {
       vpcLinkName: 'api-vpc-link',
       description: 'Connect to the NLB API.',
-      targets: [this.nlb]
+      targets: [nlb]
     });
     
     // APIGW 
     this.api = new apigateway.RestApi(this, 'Api',{
       deployOptions: {
         stageName: 'backend',
+        //実行ログの設定
+        dataTraceEnabled: true,
+        loggingLevel: apigateway.MethodLoggingLevel.INFO,
       },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
@@ -99,20 +100,32 @@ export class Network extends Construct {
       },
       cloudWatchRole: true,
     });
-    const proxy = this.api.root.addResource('{proxy+}');
     
-    proxy.addMethod('ANY', new apigateway.Integration({
+    const proxy_resource = this.api.root.addResource('{proxy+}', {
+      defaultCorsPreflightOptions: { // リソースに対してCORS設定　optionメソッドが追加される
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
+        statusCode: 200,
+      },
+    })
+    proxy_resource.addMethod('ANY', new apigateway.Integration({
       type: apigateway.IntegrationType.HTTP_PROXY,
       integrationHttpMethod: 'ANY',
-      uri: `http://${this.nlb.loadBalancerDnsName}/{proxy}`,
+      uri: `http://${nlb.loadBalancerDnsName}/{proxy}`,
       options: {
           connectionType: apigateway.ConnectionType.VPC_LINK,
-          vpcLink: vpcLink
+          vpcLink: vpcLink,
+          requestParameters: {
+            'integration.request.path.proxy' : 'method.request.path.proxy'
+          }
     }}), {}
     );
+    
 
     // vpc-link(vpc cidr) から nlbへのinbound 許可
-    this.nlbSG.addIngressRule(ec2.Peer.ipv4(this.vpc.vpcCidrBlock), ec2.Port.tcp(nlb_listen_port))
+    nlbSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80))
+    nlbSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443))
 
     // Cluster
     this.cluster = new ecs.Cluster(this, 'EcsCluster', {
@@ -127,7 +140,7 @@ export class Network extends Construct {
       description: 'for langflow-back-ecs',
       vpc: this.vpc,
     })
-    this.ecsBackSG.addIngressRule(this.nlbSG,ec2.Port.tcp(this.backendServicePort))
+    this.ecsBackSG.addIngressRule(nlbSG,ec2.Port.tcp(this.backendServicePort))
 
     // RDSに設定するセキュリティグループ
     this.dbSG = new ec2.SecurityGroup(scope, 'DBSecurityGroup', {

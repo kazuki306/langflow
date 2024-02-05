@@ -60,10 +60,10 @@ export class LangflowAppStack extends cdk.Stack {
     })
     backendService.node.addDependency(rdsCluster);
 
-    const frontendService = new Web(this, 'frontend',{
-      api:api,
-    })
-    frontendService.node.addDependency(backendService);
+    // const frontendService = new Web(this, 'frontend',{
+    //   api:api,
+    // })
+    // frontendService.node.addDependency(backendService);
 
   }
 }
