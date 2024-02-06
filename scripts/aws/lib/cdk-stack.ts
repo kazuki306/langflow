@@ -1,8 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ecs from 'aws-cdk-lib/aws-ecs'
+import * as elb from 'aws-cdk-lib/aws-elasticloadbalancingv2'
 
-import { Network, EcrRepository, Web, BackEndCluster, Rds, EcsIAM, Rag} from './construct';
+import { Network, EcrRepository, Web, BackEndCluster, Rds, EcsIAM, Rag, API} from './construct';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 const errorMessageForBooleanContext = (key: string) => {
@@ -12,8 +13,9 @@ const errorMessageForBooleanContext = (key: string) => {
   - no items in cdk.json (unset) `;
 };
 
+export class LangflowBackendStack extends cdk.Stack {
+  public readonly nlb: elb.NetworkLoadBalancer;
 
-export class LangflowAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
     // Kendra Enable
@@ -30,8 +32,9 @@ export class LangflowAppStack extends cdk.Stack {
     const arch = ecs.CpuArchitecture.X86_64
 
     // VPC
-    const { vpc, cluster, ecsBackSG, backendServicePort, dbSG, backendLogGroup, nlbTG, api} = new Network(this, 'Network')
-
+    const { vpc, cluster, ecsBackSG, backendServicePort, dbSG, backendLogGroup, nlb, nlbTG } = new Network(this, 'Network')
+    this.nlb = nlb
+    
     // ECR
     const { ecrBackEndRepository } = new EcrRepository(this, 'Ecr', {
       arch:arch
@@ -60,10 +63,22 @@ export class LangflowAppStack extends cdk.Stack {
     })
     backendService.node.addDependency(rdsCluster);
 
-    // const frontendService = new Web(this, 'frontend',{
-    //   api:api,
-    // })
-    // frontendService.node.addDependency(backendService);
+  }
+}
+
+interface FrontendStackProps extends cdk.StackProps {
+  nlb: elb.NetworkLoadBalancer;
+}
+export class LangflowFrontendStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props: FrontendStackProps) {
+    super(scope, id, props);
+
+    const api = new API(this, 'apigw',{
+      nlb: props.nlb
+    })
+    const frontendService = new Web(this, 'frontend',{
+      api:api.api,
+    })
 
   }
 }
