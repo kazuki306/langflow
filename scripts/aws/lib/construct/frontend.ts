@@ -75,7 +75,7 @@ export class Web extends Construct {
     destinationBucket: s3BucketInterface,
     distribution: cloudFrontWebDistribution,
     outputSourceDirectory: 'build',
-    buildCommands: ['npm install --only=production', 'npm run build'],
+    buildCommands: ['npm install', 'npm run build'],
     buildEnvironment: {
       VITE_AXIOS_BASE_URL: endpoint,
       NODE_ENV: "production"
