@@ -120,8 +120,7 @@ export class Web extends Construct {
     outputSourceDirectory: 'build',
     buildCommands: ['npm install', 'npm run build'],
     buildEnvironment: {
-      VITE_AXIOS_BASE_URL: endpoint,
-      NODE_ENV: "production"
+      VITE_AXIOS_BASE_URL: endpoint
     },
   });
 
