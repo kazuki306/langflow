@@ -15,6 +15,7 @@ const errorMessageForBooleanContext = (key: string) => {
 
 export class LangflowBackendStack extends cdk.Stack {
   public readonly nlb: elb.NetworkLoadBalancer;
+  public readonly nlbDNS: string;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -34,7 +35,7 @@ export class LangflowBackendStack extends cdk.Stack {
     // VPC
     const { vpc, cluster, ecsBackSG, backendServicePort, dbSG, backendLogGroup, nlb, nlbTG } = new Network(this, 'Network')
     this.nlb = nlb
-    
+
     // ECR
     const { ecrBackEndRepository } = new EcrRepository(this, 'Ecr', {
       arch:arch
@@ -62,19 +63,21 @@ export class LangflowBackendStack extends cdk.Stack {
       nlbTG:nlbTG
     })
     backendService.node.addDependency(rdsCluster);
-
+    this.nlbDNS = nlb.loadBalancerDnsName
   }
 }
 
 interface FrontendStackProps extends cdk.StackProps {
   nlb: elb.NetworkLoadBalancer;
+  nlbDNS: string;
 }
 export class LangflowFrontendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: FrontendStackProps) {
     super(scope, id, props);
 
     const api = new API(this, 'apigw',{
-      nlb: props.nlb
+      nlb: props.nlb,
+      nlbDNS:props.nlbDNS
     })
     const frontendService = new Web(this, 'frontend',{
       api:api.api,

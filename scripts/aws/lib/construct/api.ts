@@ -6,6 +6,7 @@ import {
 
 interface APIProps {
   nlb:elb.NetworkLoadBalancer;
+  nlbDNS:string;
 }
 
 function add_proxy(api_resource:apigateway.IResource, nlb: elb.NetworkLoadBalancer,vpcLink: apigateway.VpcLink,resource_path: string) {
@@ -20,7 +21,7 @@ function add_proxy(api_resource:apigateway.IResource, nlb: elb.NetworkLoadBalanc
   proxy_resource.addMethod('ANY', new apigateway.Integration({
     type: apigateway.IntegrationType.HTTP_PROXY,
     integrationHttpMethod: 'ANY',
-    uri: `http://${nlb.loadBalancerDnsName}/${resource_path}/{proxy}`,
+    uri: `http://${props.nlbDNS}/${resource_path}/{proxy}`,
     options: {
         connectionType: apigateway.ConnectionType.VPC_LINK,
         vpcLink: vpcLink,
@@ -49,7 +50,7 @@ function add_resourse(api_resource:apigateway.IResource, nlb: elb.NetworkLoadBal
       proxy_resource.addMethod(methodList[i], new apigateway.Integration({
         type: apigateway.IntegrationType.HTTP_PROXY,
         integrationHttpMethod: methodList[i],
-        uri: `http://${nlb.loadBalancerDnsName}/${resource_path}/`,
+        uri: `http://${props.nlbDNS}/${resource_path}/`,
         options: {
             connectionType: apigateway.ConnectionType.VPC_LINK,
             vpcLink: vpcLink,
