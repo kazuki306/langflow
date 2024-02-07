@@ -64,6 +64,10 @@ export class LangflowBackendStack extends cdk.Stack {
     })
     backendService.node.addDependency(rdsCluster);
     this.nlbDNS = nlb.loadBalancerDnsName
+    new cdk.CfnOutput(this, "NlbDnsName",{
+      value: nlb.loadBalancerDnsName
+    })
+
   }
 }
 

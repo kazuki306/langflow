@@ -11,17 +11,19 @@ interface APIProps {
 
 function add_proxy(api_resource:apigateway.IResource, nlbDNS: string,vpcLink: apigateway.VpcLink,resource_path: string) {
   const proxy_resource = api_resource.addResource('{proxy+}', {
-    defaultCorsPreflightOptions: { // リソースに対してCORS設定　optionメソッドが追加される
+    defaultCorsPreflightOptions: { // リソースに対してCORS設定 optionメソッドが追加される
       allowOrigins: apigateway.Cors.ALL_ORIGINS,
       allowMethods: apigateway.Cors.ALL_METHODS,
       allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
       statusCode: 200,
     },
   })
+  let uri = resource_path ? `http://${nlbDNS}/${resource_path}/{proxy}` : `http://${nlbDNS}/{proxy}`
+
   proxy_resource.addMethod('ANY', new apigateway.Integration({
     type: apigateway.IntegrationType.HTTP_PROXY,
     integrationHttpMethod: 'ANY',
-    uri: `http://${nlbDNS}/${resource_path}/{proxy}`,
+    uri: uri,
     options: {
         connectionType: apigateway.ConnectionType.VPC_LINK,
         vpcLink: vpcLink,
@@ -48,7 +50,7 @@ function add_resourse(api_resource:apigateway.IResource, nlbDNS: string,vpcLink:
   if(resource_path){
     for (let i =0; i< methodList.length; i++){
       proxy_resource.addMethod(methodList[i], new apigateway.Integration({
-        type: apigateway.IntegrationType.HTTP_PROXY,
+        type: apigateway.IntegrationType.HTTP,
         integrationHttpMethod: methodList[i],
         uri: `http://${nlbDNS}/${resource_path}/`,
         options: {
@@ -86,6 +88,7 @@ export class API extends Construct {
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
       },
       cloudWatchRole: true,
     });
