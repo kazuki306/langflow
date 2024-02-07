@@ -17,7 +17,7 @@ interface FrontEndProps {
 }
 
 export class Web extends Construct {
-  readonly distribution;
+  readonly distribution: cdn.Distribution;
   constructor(scope: Construct, id: string, props:FrontEndProps) {
     super(scope, id)
 
