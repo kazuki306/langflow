@@ -9,7 +9,7 @@ const backendStack = new LangflowBackendStack(app, 'LangflowBackendStack', {
 });
 
 const frontendStack = new LangflowFrontendStack(app, 'LangflowFrontEndStack', {
-  nlb: backendStack.nlb
+  nlb: backendStack.nlb,
   nlbDNS:backendStack.nlbDNS
 });
 
