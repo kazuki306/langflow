@@ -15,6 +15,6 @@ COPY ./ ./
 # Install dependencies
 RUN poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
 
-RUN poetry add pymysql==1.0.2
+# RUN poetry add pymysql==1.0.2
 
 CMD ["sh", "./container-cmd-cdk.sh"]

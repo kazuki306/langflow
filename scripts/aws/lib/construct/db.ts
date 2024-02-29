@@ -24,8 +24,8 @@ export class Rds extends Construct{
     
     // DB クラスターのパラメータグループ作成
     const clusterParameterGroup = new rds.ParameterGroup(scope, 'ClusterParameterGroup',{
-      engine: rds.DatabaseClusterEngine.auroraMysql({
-        version: rds.AuroraMysqlEngineVersion.VER_3_02_0
+      engine: rds.DatabaseClusterEngine.auroraPostgres({
+        version : rds.AuroraPostgresEngineVersion.VER_15_4
       }),
       description: 'for-langflow',
     })
@@ -33,16 +33,16 @@ export class Rds extends Construct{
 
     // DB インスタンスのパラメタグループ作成
     const instanceParameterGroup = new rds.ParameterGroup(scope, 'InstanceParameterGroup',{
-      engine: rds.DatabaseClusterEngine.auroraMysql({
-        version: rds.AuroraMysqlEngineVersion.VER_3_02_0,
+      engine: rds.DatabaseClusterEngine.auroraPostgres({
+        version : rds.AuroraPostgresEngineVersion.VER_15_4
       }),
       description: 'for-langflow',
     })
     instanceParameterGroup.bindToInstance({})
 
     this.rdsCluster = new rds.DatabaseCluster(scope, 'LangflowDbCluster', {
-      engine: rds.DatabaseClusterEngine.auroraMysql({
-        version: rds.AuroraMysqlEngineVersion.VER_3_02_0,
+      engine: rds.DatabaseClusterEngine.auroraPostgres({
+        version : rds.AuroraPostgresEngineVersion.VER_15_4
       }),
       storageEncrypted: true,
       credentials: rdsCredentials,
