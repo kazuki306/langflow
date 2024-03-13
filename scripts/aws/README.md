@@ -20,7 +20,8 @@ Aurora's secret is managed by [AWS Secrets Manager](https://aws.amazon.com/secre
    ```shell
    git clone https://github.com/aws-samples/cloud9-setup-for-prototyping
    cd cloud9-setup-for-prototyping
-   cat params.json | jq '.name |= "c9-for-langflow"'
+   jq '.name |= "c9-for-langflow"' params.json > tmp.json && mv tmp.json params.json
+   jq '.image_id |= "amazonlinux-2023-x86_64"' params.json > tmp.json && mv tmp.json params.json
    ./bin/bootstrap
    ```
 1. When you see `Done!` in Cloudshell, open `c9-for-langflow` from [AWS Cloud9](https://us-east-1.console.aws.amazon.com/cloud9control/home?region=us-east-1#/).

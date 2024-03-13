@@ -19,6 +19,8 @@ Auroraのシークレットは [AWS Secrets Manager](https://aws.amazon.com/secr
     ```shell
     git clone https://github.com/aws-samples/cloud9-setup-for-prototyping
     cd cloud9-setup-for-prototyping
+    jq '.name |= "c9-for-langflow"' params.json > tmp.json && mv tmp.json params.json
+    jq '.image_id |= "amazonlinux-2023-x86_64"' params.json > tmp.json && mv tmp.json params.json
     ./bin/bootstrap
     ```
 
