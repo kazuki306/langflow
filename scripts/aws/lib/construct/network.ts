@@ -59,8 +59,10 @@ export class Network extends Construct {
       internetFacing: true, //インターネットからのアクセスを許可するかどうか指定
       loadBalancerName: 'langflow-alb',
       securityGroup: this.albSG, //作成したセキュリティグループを割り当てる
-      vpc:this.vpc,   
+      vpc:this.vpc,
     })
+    // alb sticky session
+
 
     const listener = this.alb.addListener('Listener', { port: alb_listen_port });
 
@@ -72,10 +74,11 @@ export class Network extends Construct {
         path: '/health',
         healthyThresholdCount: 2,
         unhealthyThresholdCount: 4,
-        interval: Duration.seconds(100),
+        interval: Duration.seconds(60),
         timeout: Duration.seconds(30),
         healthyHttpCodes: '200',
       },
+      stickinessCookieDuration: Duration.hours(1), // Sticky Sessionの有効期間を1時間に設定
     });
 
     // Cluster
