@@ -32,6 +32,8 @@ export class BackEndCluster extends Construct {
     super(scope, id)
     const backendServiceName = 'backend'
     const backendServicePort = 7860
+    const backendTaskMemory = 1024*16
+    const backendTaskvCPU = 1024*16
     // Secrets ManagerからDB認証情報を取ってくる
     const secretsDB = props.rdsCluster.secret!;
 
@@ -40,8 +42,8 @@ export class BackEndCluster extends Construct {
       this,
       'BackEndTaskDef',
       {
-          memoryLimitMiB: 3072,
-          cpu: 1024,
+          memoryLimitMiB: backendTaskMemory,
+          cpu: backendTaskvCPU,
           executionRole: props.backendTaskExecutionRole,
           runtimePlatform:{
             operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
@@ -86,5 +88,16 @@ export class BackEndCluster extends Construct {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     });
     props.albTG.addTarget(backendService);
+
+    // auto scaling settings by cpu utilization
+    const scaling = backendService.autoScaleTaskCount({
+      minCapacity: 1,
+      maxCapacity: 5,
+    })
+    scaling.scaleOnCpuUtilization('CpuScaling', {
+      targetUtilizationPercent: 50,
+      scaleInCooldown: Duration.seconds(60),
+      scaleOutCooldown: Duration.seconds(60),
+    })
   }
 }
