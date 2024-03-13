@@ -32,7 +32,7 @@ export class BackEndCluster extends Construct {
     super(scope, id)
     const backendServiceName = 'backend'
     const backendServicePort = 7860
-    const backendTaskMemory = 1024*16
+    const backendTaskMemory = 1024*32
     const backendTaskvCPU = 1024*16
     // Secrets ManagerからDB認証情報を取ってくる
     const secretsDB = props.rdsCluster.secret!;
