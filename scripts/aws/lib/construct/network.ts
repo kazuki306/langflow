@@ -101,7 +101,7 @@ export class Network extends Construct {
       vpc: this.vpc,
     })
     // langflow-ecs-back-sg からのポート3306:mysql(5432:postgres)のインバウンドを許可
-    this.dbSG.addIngressRule(this.ecsBackSG, ec2.Port.tcp(3306))
+    this.dbSG.addIngressRule(this.ecsBackSG, ec2.Port.tcp(5432))
 
     // Create CloudWatch Log Group
     this.backendLogGroup = new logs.LogGroup(this, 'backendLogGroup', {

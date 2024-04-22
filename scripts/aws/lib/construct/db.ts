@@ -17,6 +17,9 @@ export class Rds extends Construct{
     const {vpc, dbSG} = props
     const instanceType = ec2.InstanceType.of(ec2.InstanceClass.BURSTABLE4_GRAVITON, ec2.InstanceSize.MEDIUM)
 
+    const engine_type = rds.DatabaseClusterEngine.auroraPostgres({
+      version : rds.AuroraPostgresEngineVersion.VER_15_4
+    })
     // RDSのパスワードを自動生成してSecrets Managerに格納
     const rdsCredentials = rds.Credentials.fromGeneratedSecret('db_user',{
       secretName: 'langflow-DbSecret',
@@ -24,26 +27,20 @@ export class Rds extends Construct{
     
     // DB クラスターのパラメータグループ作成
     const clusterParameterGroup = new rds.ParameterGroup(scope, 'ClusterParameterGroup',{
-      engine: rds.DatabaseClusterEngine.auroraMysql({
-        version: rds.AuroraMysqlEngineVersion.VER_3_02_0
-      }),
+      engine: engine_type,
       description: 'for-langflow',
     })
     clusterParameterGroup.bindToCluster({})
 
     // DB インスタンスのパラメタグループ作成
     const instanceParameterGroup = new rds.ParameterGroup(scope, 'InstanceParameterGroup',{
-      engine: rds.DatabaseClusterEngine.auroraMysql({
-        version: rds.AuroraMysqlEngineVersion.VER_3_02_0,
-      }),
+      engine: engine_type,
       description: 'for-langflow',
     })
     instanceParameterGroup.bindToInstance({})
 
     this.rdsCluster = new rds.DatabaseCluster(scope, 'LangflowDbCluster', {
-      engine: rds.DatabaseClusterEngine.auroraMysql({
-        version: rds.AuroraMysqlEngineVersion.VER_3_02_0,
-      }),
+      engine: engine_type,
       storageEncrypted: true,
       credentials: rdsCredentials,
       instanceIdentifierBase: 'langflow-instance',

@@ -16,6 +16,6 @@ COPY ./ ./
 RUN poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
 
 RUN poetry add botocore
-RUN poetry add pymysql
+# RUN poetry add pymysql
 
 CMD ["sh", "./container-cmd-cdk.sh"]
