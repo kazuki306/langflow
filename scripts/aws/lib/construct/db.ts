@@ -5,7 +5,7 @@ import * as cdk from 'aws-cdk-lib';
 
 interface RdsProps {
   vpc: ec2.Vpc
-  dbSG:ec2.SecurityGroup
+  SGs: { [key: string]: ec2.SecurityGroup }
 }
 
 export class Rds extends Construct{
@@ -14,7 +14,6 @@ export class Rds extends Construct{
   constructor(scope: Construct, id:string, props: RdsProps){
     super(scope, id);
 
-    const {vpc, dbSG} = props
     const instanceType = ec2.InstanceType.of(ec2.InstanceClass.BURSTABLE4_GRAVITON, ec2.InstanceSize.MEDIUM)
 
     const engine_type = rds.DatabaseClusterEngine.auroraPostgres({
@@ -44,11 +43,11 @@ export class Rds extends Construct{
       storageEncrypted: true,
       credentials: rdsCredentials,
       instanceIdentifierBase: 'langflow-instance',
-      vpc:vpc,
-      vpcSubnets:vpc.selectSubnets({
+      vpc: props.vpc,
+      vpcSubnets: props.vpc.selectSubnets({
         subnetGroupName: 'langflow-Isolated',
       }),
-      securityGroups:[dbSG],
+      securityGroups:[props.SGs.db],
       writer: rds.ClusterInstance.provisioned("WriterInstance", {
         instanceType: instanceType,
         enablePerformanceInsights: true,

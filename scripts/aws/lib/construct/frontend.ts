@@ -18,7 +18,7 @@ import { NodejsBuild } from 'deploy-time-build';
 interface WebProps {
   cluster:ecs.Cluster
   alb:elb.IApplicationLoadBalancer;
-  albSG:ec2.SecurityGroup;
+  SGs: { [key: string]: ec2.SecurityGroup }
 }
 
 export class Web extends Construct {
@@ -92,6 +92,7 @@ export class Web extends Construct {
     defaultBehavior: { origin:  s3SpaOrigin },
     additionalBehaviors: {
       '/api/v1/*': albBehaviorOptions,
+      '/docs/*': albBehaviorOptions,
       '/health' : albBehaviorOptions,
     },
     enableLogging: true, // ログ出力設定
@@ -127,10 +128,8 @@ export class Web extends Construct {
   });
   
   // distribution から backendへのinbound 許可
-  const alb_listen_port=80
-  props.albSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(alb_listen_port))
-  const alb_listen_port_443=443
-  props.albSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(alb_listen_port_443))
+  props.SGs['alb'].addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80))
+  props.SGs['alb'].addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443))
 
 
   new CfnOutput(this, 'URL', {

@@ -10,8 +10,8 @@ interface IAMProps {
 }
 
 export class EcsIAM extends Construct {
-  readonly backendTaskRole: iam.Role;
-  readonly backendTaskExecutionRole: iam.Role;
+  readonly ecsTaskRoles: { [key:string]: iam.Role };
+  readonly ecsTaskExecutionRoles: { [key:string]: iam.Role };
 
   constructor(scope: Construct, id: string, props:IAMProps) {
     super(scope, id)
@@ -28,6 +28,8 @@ export class EcsIAM extends Construct {
         'ecr:BatchGetImage',
       ],
     });
+
+    // --- Create Rag Policy ---
     // Bedrock Policy State
     const BedrockPolicyStatement = new iam.PolicyStatement({
       sid: 'allowBedrockAccess',
@@ -44,11 +46,12 @@ export class EcsIAM extends Construct {
         'kendra:*'
       ],
     });
-    // Create Rag Policy
     const RagAccessPolicy = new iam.Policy(this, 'RAGFullAccess', {
       statements: [KendraPolicyStatement,BedrockPolicyStatement],
     })
-    // Secrets ManagerからDB認証情報を取ってくるためのPolicy
+    // ---
+
+    // To retrieve the database authentication credentials from Secrets Manager
     const SecretsManagerPolicy = new iam.Policy(this, 'SMGetPolicy', {
       statements: [new iam.PolicyStatement({
         actions: ['secretsmanager:GetSecretValue'],
@@ -56,27 +59,29 @@ export class EcsIAM extends Construct {
       })],
     })
 
-    // BackEnd Task Role
-    this.backendTaskRole = new iam.Role(this, 'BackendTaskRole', {
-      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-    });
-    // ECS Exec Policyの付与
-    this.backendTaskRole.addToPolicy(ECSExecPolicyStatement);
-    // KendraとBedrockのアクセス権付与
-    this.backendTaskRole.attachInlinePolicy(RagAccessPolicy);
+    // --- BackEnd Task Role ---
+    const containersList = ['backend','pgadmin','result_backend','celeryworker','flower','broker','prometheus','grafana'];
+    for (const role_name of containersList){
+      this.ecsTaskRoles[role_name] = new iam.Role(this, `ecsTaskRole-${role_name}`, {
+        assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+      });
+      // ECS Exec Policyの付与, KendraとBedrockのアクセス権付与
+      this.ecsTaskRoles[role_name].addToPolicy(ECSExecPolicyStatement);
+      this.ecsTaskRoles[role_name].attachInlinePolicy(RagAccessPolicy);
+      // --- 
 
-    // BackEnd Task ExecutionRole 
-    this.backendTaskExecutionRole = new iam.Role(this, 'backendTaskExecutionRole', {
-      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-      managedPolicies: [
-        {
-          managedPolicyArn:
-            'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
-        },
-      ],
-    });
-  
-    this.backendTaskExecutionRole.attachInlinePolicy(SecretsManagerPolicy);
-    this.backendTaskExecutionRole.attachInlinePolicy(RagAccessPolicy);
+      // BackEnd Task ExecutionRole 
+      this.ecsTaskExecutionRoles[role_name] = new iam.Role(this, 'backendTaskExecutionRole', {
+        assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+        managedPolicies: [
+          {
+            managedPolicyArn:
+              'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
+          },
+        ],
+      });
+      this.ecsTaskExecutionRoles[role_name].attachInlinePolicy(SecretsManagerPolicy);
+      this.ecsTaskExecutionRoles[role_name].attachInlinePolicy(RagAccessPolicy);
+    }
   }
 }

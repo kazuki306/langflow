@@ -2,7 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ecs from 'aws-cdk-lib/aws-ecs'
 
-import { Network, EcrRepository, Web, BackEndCluster, Rds, EcsIAM, Rag} from './construct';
+import { Network, EcrRepositories, SG, Web, BackendCluster, Rds, EcsIAM, Rag} from './construct';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 const errorMessageForBooleanContext = (key: string) => {
@@ -30,39 +30,45 @@ export class LangflowAppStack extends cdk.Stack {
     const arch = ecs.CpuArchitecture.X86_64
 
     // VPC
-    const { vpc, cluster, ecsBackSG, dbSG, backendLogGroup, alb, albTG, albSG} = new Network(this, 'Network')
+    const { vpc, cluster} = new Network(this, 'Network')
+
+    // SG
+    const { SGs, TGs, alb, containerPorts }= new SG(this, 'SG', {
+      vpc:vpc
+    })
 
     // ECR
-    const { ecrBackEndRepository } = new EcrRepository(this, 'Ecr', {
+    const { ecrRepositories } = new EcrRepositories(this, 'Ecr', {
       arch:arch
     })
 
     // RDS
     // VPCとSGのリソース情報をPropsとして引き渡す
-    const { rdsCluster } = new Rds(this, 'Rds', { vpc, dbSG })
+    const { rdsCluster } = new Rds(this, 'Rds', { vpc, SGs })
 
     // IAM
-    const { backendTaskRole, backendTaskExecutionRole } = new EcsIAM(this, 'EcsIAM',{
+    const { ecsTaskRoles, ecsTaskExecutionRoles } = new EcsIAM(this, 'EcsIAM',{
       rdsCluster:rdsCluster
     })
 
-    const backendService = new BackEndCluster(this, 'backend', {
+    const backendService = new BackendCluster(this, 'backend', {
       cluster:cluster,
-      ecsBackSG:ecsBackSG,
-      ecrBackEndRepository:ecrBackEndRepository,
-      backendTaskRole:backendTaskRole,
-      backendTaskExecutionRole:backendTaskExecutionRole,
-      backendLogGroup:backendLogGroup,
+      ecrRepositories:ecrRepositories,
+      SGs:SGs,
+      TGs:TGs,
+      ecsTaskRoles:ecsTaskRoles,
+      ecsTaskExecutionRoles:ecsTaskExecutionRoles,
       rdsCluster:rdsCluster,
       arch:arch,
-      albTG:albTG
+      containerPorts:containerPorts
     })
+    backendService.node.addDependency(cluster);
     backendService.node.addDependency(rdsCluster);
 
     const frontendService = new Web(this, 'frontend',{
       cluster:cluster,
       alb:alb,
-      albSG:albSG
+      SGs:SGs,
     })
     frontendService.node.addDependency(backendService);
 
